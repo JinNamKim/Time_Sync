@@ -2,11 +2,14 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +19,7 @@ namespace Time_Syncer
 {
     public partial class Form1 : Form
     {
+        DateTime Sync_Time;
         public Thread thread_Time_Sync;
         public bool flag = false;
 
@@ -35,16 +39,47 @@ namespace Time_Syncer
         {
             try
             {
+                
+                
                 while (true)
                 {
                     if(flag)
                     {
-                        setNowTime();
-                        Thread.Sleep(1000 * 60 * 1);
+
+                        if(DateTime.Now.Second == 0)
+                        {
+                            setNowTime();
+                        }
+                        else
+                        {
+                            TimeSpan span_temp;
+
+                            span_temp = DateTime.Now - Sync_Time;
+
+                            if (label1.InvokeRequired)
+                            {
+                                label1.Invoke(new MethodInvoker(delegate
+                                {
+                                    label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}({1}초전)", Sync_Time, span_temp.Seconds);
+                                }));
+                            }
+                            else
+                            {
+                                label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}({1}초전)", Sync_Time, span_temp.Seconds);
+                            }
+
+                            
+                        }
+
+                        
+
+                        Thread.Sleep(1000 * 1 * 1);
+
+
                     }
                     else
                     {
-                        Thread.Sleep(1000 * 30);
+                        Thread.Sleep(1000 * 1);
                     }
                     GC.Collect();
                 }
@@ -79,6 +114,10 @@ namespace Time_Syncer
         private void setNowTime()
         {
             SYSTEMTIME sTime = new SYSTEMTIME();
+
+            DateTime temp = GetNetworkTime();
+
+            /*
             sTime.wYear = Convert.ToInt16(GetNetworkTime().Year);
             sTime.wMonth = Convert.ToInt16(GetNetworkTime().Month);
             sTime.wDayOfWeek = Convert.ToInt16(GetNetworkTime().DayOfWeek);
@@ -87,14 +126,33 @@ namespace Time_Syncer
             sTime.wMinute = Convert.ToInt16(GetNetworkTime().Minute);
             sTime.wSecond = Convert.ToInt16(GetNetworkTime().Second);
             sTime.wMilliseconds = Convert.ToInt16(GetNetworkTime().Millisecond);
+            */
+
+            sTime.wYear = Convert.ToInt16(temp.Year);
+            sTime.wMonth = Convert.ToInt16(temp.Month);
+            sTime.wDayOfWeek = Convert.ToInt16(temp.DayOfWeek);
+            sTime.wDay = Convert.ToInt16(temp.Day);
+            sTime.wHour = Convert.ToInt16(temp.Hour);
+            sTime.wMinute = Convert.ToInt16(temp.Minute);
+            sTime.wSecond = Convert.ToInt16(temp.Second);
+            sTime.wMilliseconds = Convert.ToInt16(temp.Millisecond);
+
             SetSystemTime(ref sTime);
 
             Thread.Sleep(100);
-            label1.Invoke(new MethodInvoker(delegate
+            if(label1.InvokeRequired)
             {
-                label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}", sTime);
-            }));
+                label1.Invoke(new MethodInvoker(delegate
+                {
+                    label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}", temp);
+                }));
+            }
+            else
+            {
+                label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}", temp);
+            }
 
+            Sync_Time = temp;
         }
 
 
@@ -141,22 +199,11 @@ namespace Time_Syncer
                 {
 
                 }
-                
-                
-                    
-
-
             }
 
 
             //IPEndPoint ep = new IPEndPoint(address[0], 123);
             IPEndPoint ep = new IPEndPoint(final_IP, 123);
-
-
-
-
-            
-
             return GetNetworkTime(ep);
         }
 
@@ -228,6 +275,32 @@ namespace Time_Syncer
         {
             if(thread_Time_Sync.IsAlive)
                 thread_Time_Sync.Abort();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            /*
+            if (!IsRunningAsAdministrator())
+            {
+                ProcessStartInfo processStartInfo = new ProcessStartInfo(Assembly.GetEntryAssembly().CodeBase);
+                {
+                    var withBlock = processStartInfo;
+                    withBlock.UseShellExecute = true;
+                    withBlock.Verb = "runas";
+                    Process.Start(processStartInfo);
+                    Application.Exit();
+                }
+            }
+            else
+                this.Text += " " + "(Administrator)";
+            */
+        }
+
+        public bool IsRunningAsAdministrator()
+        {
+            WindowsIdentity windowsIdentity = WindowsIdentity.GetCurrent();
+            WindowsPrincipal windowsPrincipal = new WindowsPrincipal(windowsIdentity);
+            return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
         }
     }
 }
