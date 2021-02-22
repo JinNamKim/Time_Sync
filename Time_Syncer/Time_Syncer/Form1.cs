@@ -60,12 +60,12 @@ namespace Time_Syncer
                             {
                                 label1.Invoke(new MethodInvoker(delegate
                                 {
-                                    label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}({1}초전)", Sync_Time, span_temp.Seconds);
+                                    label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}({1}초전)", Sync_Time.AddHours(9), span_temp.Seconds);
                                 }));
                             }
                             else
                             {
-                                label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}({1}초전)", Sync_Time, span_temp.Seconds);
+                                label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}({1}초전)", Sync_Time.AddHours(9), span_temp.Seconds);
                             }
 
                             
@@ -144,12 +144,12 @@ namespace Time_Syncer
             {
                 label1.Invoke(new MethodInvoker(delegate
                 {
-                    label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}", temp);
+                    label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}", temp.AddHours(9));
                 }));
             }
             else
             {
-                label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}", temp);
+                label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}", temp.AddHours(9));
             }
 
             Sync_Time = temp;
