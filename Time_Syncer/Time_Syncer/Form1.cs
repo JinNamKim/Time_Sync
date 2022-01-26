@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -22,6 +23,7 @@ namespace Time_Syncer
         DateTime Sync_Time;
         public Thread thread_Time_Sync;
         public bool flag = false;
+        public int SYNC_COUNT = 0;
 
         public Form1()
         {
@@ -39,47 +41,55 @@ namespace Time_Syncer
         {
             try
             {
-                
-                
+                setNowTime();
+                label2.Invoke(new MethodInvoker(delegate
+                {
+                    label2.Text = string.Format("FLAG : TRUE / SC_C : {0}", SYNC_COUNT);
+                }));
+
                 while (true)
                 {
                     if(flag)
                     {
 
-                        if(DateTime.Now.Second == 0)
+                        if(DateTime.Now.Minute % 30 == 0)
                         {
                             setNowTime();
+                            label2.Invoke(new MethodInvoker(delegate
+                            {
+                                label2.Text = string.Format("FLAG : TRUE / SC_C : {0}", SYNC_COUNT);
+                            }));
                         }
                         else
                         {
-                            TimeSpan span_temp;
+                            //TimeSpan span_temp;
 
-                            span_temp = DateTime.Now - Sync_Time;
+                            //span_temp = DateTime.Now - Sync_Time;
 
-                            if (label1.InvokeRequired)
-                            {
-                                label1.Invoke(new MethodInvoker(delegate
-                                {
-                                    label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}({1}초전)", Sync_Time.AddHours(9), span_temp.Seconds);
-                                }));
-                            }
-                            else
-                            {
-                                label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}({1}초전)", Sync_Time.AddHours(9), span_temp.Seconds);
-                            }
+                            //if (label1.InvokeRequired)
+                            //{
+                            //    label1.Invoke(new MethodInvoker(delegate
+                            //    {
+                            //        label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}({1}초전)", Sync_Time.AddHours(9), span_temp.Seconds);
+                            //    }));
+                            //}
+                            //else
+                            //{
+                            //    label1.Text = string.Format("실행 : {0:MM-dd HH:mm:ss}({1}초전)", Sync_Time.AddHours(9), span_temp.Seconds);
+                            //}
 
                             
                         }
 
                         
 
-                        Thread.Sleep(1000 * 1 * 1);
+                        Thread.Sleep(1000 * 1 * 50);
 
 
                     }
                     else
                     {
-                        Thread.Sleep(1000 * 1);
+                        Thread.Sleep(1000 * 1 * 50);
                     }
                     GC.Collect();
                 }
@@ -115,7 +125,10 @@ namespace Time_Syncer
         {
             SYSTEMTIME sTime = new SYSTEMTIME();
 
-            DateTime temp = GetNetworkTime();
+            //DateTime temp = GetNetworkTime();
+
+            DateTime temp = GetGoogleDateTime();
+            temp = temp.AddHours(-9);
 
             /*
             sTime.wYear = Convert.ToInt16(GetNetworkTime().Year);
@@ -137,6 +150,9 @@ namespace Time_Syncer
             sTime.wSecond = Convert.ToInt16(temp.Second);
             sTime.wMilliseconds = Convert.ToInt16(temp.Millisecond);
 
+            
+
+            //SetSystemTime(ref sTime);
             SetSystemTime(ref sTime);
 
             Thread.Sleep(100);
@@ -153,6 +169,7 @@ namespace Time_Syncer
             }
 
             Sync_Time = temp;
+            SYNC_COUNT++;
         }
 
 
@@ -164,7 +181,9 @@ namespace Time_Syncer
         {
             //return GetNetworkTime("time.windows.com"); // time-a.nist.gov
             //return GetNetworkTime("52.231.114.183"); // time-a.nist.gov
-            return GetNetworkTime("time.microsoft.akadns.net"); // time-a.nist.gov
+            //return GetNetworkTime("time.microsoft.akadns.net"); // time-a.nist.gov
+            return GetNetworkTime("time2.kriss.re.kr"); // 
+            
         }
 
         /// <summary>
@@ -253,7 +272,8 @@ namespace Time_Syncer
 
                 s.Dispose();
 
-                return networkDateTime.AddHours(-9);
+                return networkDateTime.AddHours(-18);
+                //return networkDateTime.AddHours(0);
             }
             catch(Exception ex)
             {
@@ -266,8 +286,13 @@ namespace Time_Syncer
         private void button2_Click(object sender, EventArgs e)
         {
             if(!thread_Time_Sync.IsAlive)
+            {
                 thread_Time_Sync.Start();
-            flag = true;
+                Thread.Sleep(1000);
+                flag = true;
+            }
+                
+            
 
             label2.Invoke(new MethodInvoker(delegate
             {
@@ -314,6 +339,59 @@ namespace Time_Syncer
             WindowsIdentity windowsIdentity = WindowsIdentity.GetCurrent();
             WindowsPrincipal windowsPrincipal = new WindowsPrincipal(windowsIdentity);
             return windowsPrincipal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            GetGoogleDateTime();
+        }
+
+        public DateTime GetGoogleDateTime()
+
+        {
+
+            //리턴 할 날짜 선언
+
+            DateTime dateTime = DateTime.MinValue;
+
+
+
+            try
+
+            {
+
+                //WebRequest 객체로 구글사이트 접속 해당 날짜와 시간을 로컬 형태의 포맷으로 리턴 일자에 담는다.
+
+                using (var response = WebRequest.Create("http://www.google.com").GetResponse())
+
+                    dateTime = DateTime.ParseExact(response.Headers["date"],
+
+                        "ddd, dd MMM yyyy HH:mm:ss 'GMT'",
+
+                        CultureInfo.InvariantCulture.DateTimeFormat,
+
+                        DateTimeStyles.AssumeUniversal);
+
+            }
+
+            catch (Exception)
+
+            {
+
+                //오류 발생시 로컬 날짜그대로 리턴
+
+                dateTime = DateTime.Now;
+
+            }
+
+            return dateTime;
+
+        }
+
+        private void Form1_FormClosed(object sender, FormClosingEventArgs e)
+        {
+            if (thread_Time_Sync.IsAlive)
+                thread_Time_Sync.Abort();
         }
     }
 }
